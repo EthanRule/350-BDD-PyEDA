@@ -1,42 +1,42 @@
 from pyeda.inter import * # pip install pyeda
+import IPython
 
-#main issue to solve, get a bdd not a bddConstant
+R = range(0, 32)
+G = [(i, j) for i in R for j in R if (i+3) % 32 == j % 32 or (i+8) % 32 == j % 32]
+even = [i for i in R if i % 2 == 0]
+prime = {3, 5, 7, 11, 13, 17, 19, 23, 29, 31}
+print(G)
 
-def edge_exists(bdd, i, j):
-    u = bddvar('u', i)
-    v = bddvar('v', j)
-    restricted_bdd = bdd.restrict({u: 1, v: 1})
-    return restricted_bdd.is_one()
+a1 = exprvars('a', 32)
+a2 = exprvars('a', 32)
+RR = Or(*[And(a1[i], a2[j]) for i, j in G])
+EVEN = Or(*[a1[i] for i in even])
+PRIME = Or(*[a1[i] for i in prime])
 
-def count_bdd_nodes(bdd):
-    return len(bdd.support)
+RR = expr2bdd(RR)
+EVEN = expr2bdd(EVEN)
+PRIME = expr2bdd(PRIME)
+print(sorted(RR.support))
 
-def initializeBDDs():
-    u = [bddvar('u', i) for i in range(32)]
-    v = [bddvar('v', i) for i in range(32)]
+#GraphViz
+dot = PRIME.to_dot()
+with open("graph.dot", "w") as fd:
+    fd.write(dot)
 
-    R = range(0, 32)
-    G = [(i, j) for i in R for j in R if (i+3) % 32 == j % 32 or (i+7) % 32 == j % 32]
-    edge_bdds = [u[i] & v[j] for i, j in G]
-    rr_bdd = And(*edge_bdds)
-    print(type(rr_bdd))
-    print(edge_exists(rr_bdd, 16, 20))
+a1_bdd = [expr2bdd(a) for a in a1]
+a2_bdd = [expr2bdd(a) for a in a2]
 
-    even = set([0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30])
-    even_expr = Or([u[i] for i in even])
-    even_bdd = expr2bdd(even_expr)
+print("RR Test1:", RR.restrict({a1_bdd[27]: 1, a2_bdd[3]: 1}) == expr2bdd(expr("1")))   # True
+print("RR Test2:", RR.restrict({a1_bdd[16]: 1, a2_bdd[20]: 1}) == expr2bdd(expr("1")))  # False
+print("EVEN Test1:", EVEN.restrict({a1_bdd[14]: 1}) == expr2bdd(expr("1")))             # True
+print("EVEN Test2:", EVEN.restrict({a1_bdd[13]: 1}) == expr2bdd(expr("1")))             # False
+print("PRIME Test1:", PRIME.restrict({a1_bdd[7]: 1}) == expr2bdd(expr("1")))            # True
+print("PRIME Test2:", PRIME.restrict({a1_bdd[2]: 1}) == expr2bdd(expr("1")))            # False
 
-    prime = set([3, 5, 7, 11, 13, 17, 19, 23, 29, 31])
-    prime_expr = Or([u[i] for i in prime])
-    prime_bdd = expr2bdd(prime_expr)
 
-    return rr_bdd, even_bdd, prime_bdd, u, v
+# Replace the variable names in RR
+RR2 = RR.compose({a1_bdd[i]: a2_bdd[i] for i in range(len(a1_bdd))})
 
-def main():
-    rr_bdd, even_bdd, prime_bdd, u, v = initializeBDDs()
-    print(edge_exists(rr_bdd, u, v, 16, 20))  # Prints True if edge (16, 20) exists, False otherwise
-    print(count_bdd_nodes(rr_bdd))  # Prints the number of nodes in rr_bdd
-    return
-if __name__ == '__main__':
-    main()
-
+# Test cases
+print("RR2 Test1:", RR2.restrict({a2_bdd[27]: 1, a2_bdd[3]: 1}) == expr2bdd(expr("1")))   # True
+print("RR2 Test2:", RR2.restrict({a2_bdd[16]: 1, a2_bdd[20]: 1}) == expr2bdd(expr("1")))  # False
