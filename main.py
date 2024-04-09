@@ -13,6 +13,7 @@ RR = Or(*[And(a1[i], a2[j]) for i, j in G])
 EVEN = Or(*[a1[i] for i in even])
 PRIME = Or(*[a1[i] for i in prime])
 
+print(RR)
 RR = expr2bdd(RR)
 EVEN = expr2bdd(EVEN)
 PRIME = expr2bdd(PRIME)
